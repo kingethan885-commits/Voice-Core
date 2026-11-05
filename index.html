@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice - Assistant Core</title>
+    <style>
+        @import url('https://googleapis.com');
+        
+        * {
+            box-sizing: border-box;
+            font-family: 'Google Sans', 'Product Sans', 'Outfit', sans-serif;
+            margin: 0;
+            padding: 0;
+            transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+        }
+
+        body {
+            background: linear-gradient(180deg, #f8f9fa 0%, #e8eaed 100%);
+            color: #202124;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            padding: 40px;
+            justify-content: space-between;
+            overflow: hidden;
+        }
+
+        body.dark-theme {
+            background: linear-gradient(180deg, #202124 0%, #171717 100%);
+            color: #e8eaed;
+        }
+
+        .header-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            position: relative;
+        }
+
+        .header-title {
+            font-size: 28px;
+            font-weight: 500;
+            letter-spacing: -0.5px;
+            color: #1a73e8;
+        }
+        body.dark-theme .header-title { color: #8ab4f8; }
+
+        .settings-gear-btn {
+            font-size: 24px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #5f6368;
+            padding: 5px;
+            z-index: 100;
+        }
+        body.dark-theme .settings-gear-btn { color: #9aa0a6; }
+
+        .settings-dropdown {
+            position: absolute;
+            right: 0;
+            top: 40px;
+            background: #ffffff;
+            border: 1px solid #dadce0;
+            border-radius: 12px;
+            padding: 16px;
+            width: 180px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            display: none;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 99;
+        }
+        body.dark-theme .settings-dropdown {
+            background: #303134;
+            border-color: #3c4043;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+        }
+
+        .dropdown-label {
+            font-size: 12px;
+            color: #5f6368;
+            text-transform: uppercase;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+        body.dark-theme .dropdown-label { color: #9aa0a6; }
+
+        .theme-option {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 15px;
+            cursor: pointer;
+            padding: 4px 0;
+        }
+
+        .center-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            max-width: 600px;
+            margin: auto;
+        }
+
+        .prompt-text {
+            font-size: 26px;
+            font-weight: 400;
+            margin-bottom: 25px;
+        }
+
+        .input-wrapper {
+            position: relative;
+            width: 100%;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+            border-radius: 30px;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 16px 60px 16px 24px;
+            font-size: 16px;
+            border-radius: 30px;
+            border: 1px solid #dadce0;
+            background-color: #ffffff;
+            color: #202124;
+            outline: none;
+        }
+        body.dark-theme input[type="text"] {
+            background-color: #303134;
+            border-color: #3c4043;
+            color: #e8eaed;
+        }
+
+        .submit-btn {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 1px solid #dadce0;
+            background-color: #ffffff;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #1a73e8;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        body.dark-theme .submit-btn {
+            background-color: #3c4043;
+            border-color: #5f6368;
+            color: #8ab4f8;
+        }
+
+        .response-text {
+            font-size: 22px;
+            font-weight: 400;
+            color: #3c4043;
+            text-align: center;
+            margin-top: 10px;
+            min-height: 35px;
+            line-height: 1.5;
+        }
+        body.dark-theme .response-text { color: #e8eaed; }
+
+        .footer-notice { font-size: 14px; color: #5f6368; }
+        body.dark-theme .footer-notice { color: #9aa0a6; }
+    </style>
+</head>
+<body>
+
+    <!-- --- HEADER AND MANUAL SETTINGS MENU --- -->
+    <div class="header-container">
+        <div class="header-title">Welcome To Voice</div>
+        <div>
+            <button class="settings-gear-btn" onclick="toggleSettingsMenu(event)">⚙️</button>
+            <div class="settings-dropdown" id="settingsMenu">
+                <span class="dropdown-label">Appearance</span>
+                <label class="theme-option">
+                    <input type="radio" name="theme" id="theme-light" checked onclick="setManualTheme('light')"> Light Mode
+                </label>
+                <label class="theme-option">
+                    <input type="radio" name="theme" id="theme-dark" onclick="setManualTheme('dark')"> Dark Mode
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <!-- --- CENTER INTERACTIVE FIELD --- -->
+    <div class="center-container">
+        <div class="prompt-text">What’s Next?</div>
+        
+        <div class="input-wrapper">
+            <input type="text" id="userInput" placeholder="Ask Voice something..." onkeydown="if(event.key === 'Enter') askAssistant()">
+            <button class="submit-btn" onclick="askAssistant()">↑</button>
+        </div>
+
+        <div class="response-text" id="output">Hello!, I Respond Here When You Ask Me Something</div>
+    </div>
+
+    <div class="footer-notice">Run By Core Technologies, 2026.</div>
+
+    <script>
+        const responses = {
+            "hours": "Regular hours of operation are Monday through Friday, 9:00 AM to 5:00 PM.",
+            "special": "Special holiday hours will be active for November 11, closing for the day.",
+            "businesses": "The currently available businesses are Snack House, Aiden G's mini store of Trinkets, and Grant's Prints.",
+            "update": "The next update will be Beta 1.6.",
+            "features": "Future updates will add custom wake-word mapping."
+        };
+
+        function toggleSettingsMenu(event) {
+            if (event) event.stopPropagation(); 
+            const menu = document.getElementById("settingsMenu");
+            if (menu.style.display === "flex") {
+                menu.style.display = "none";
+            } else {
+                menu.style.display = "flex";
+            }
+        }
+
+        function setManualTheme(themeName) {
+            if (themeName === 'dark') {
+                document.body.classList.add("dark-theme");
+                document.getElementById("theme-dark").checked = true;
+            } else {
+                document.body.classList.remove("dark-theme");
+                document.getElementById("theme-light").checked = true;
+            }
+        }
+
+        function processCommand(text) {
+            const input = text.toLowerCase().trim();
+            const outputText = document.getElementById("output");
+            let reply = "I am Voice, your digital assistant. I didn't quite catch that command.";
+
+            if (input.includes("special") || input.includes("holiday")) {
+                reply = responses.special;
+            } else if (input.includes("hours") || input.includes("open") || input.includes("time")) {
+                reply = responses.hours;
+            } else if (input.includes("business") || input.includes("store") || input.includes("available")) {
+                reply = responses.businesses;
+            } else if (input.includes("update") || input.includes("version")) {
+                reply = responses.update;
+            } else if (input.includes("feature") || input.includes("patch") || input.includes("roadmap")) {
+                reply = responses.features;
+            } else if (input.includes("name") || input.includes("who are you")) {
+                reply = "My name is Voice, your personal assistant.";
+            }
+
+            outputText.innerText = reply;
+
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(reply);
+            window.speechSynthesis.speak(utterance);
+        }
+
+        function askAssistant() {
+            const inputField = document.getElementById("userInput");
+            if (inputField.value.trim() !== "") {
+                processCommand(inputField.value);
+                inputField.value = "";
+            }
+        }
+
+        // Dropdown menu auto-closer
+        document.addEventListener('click', function(event) {
+            const menu = document.getElementById("settingsMenu");
+            const gearBtn = document.querySelector('.settings-gear-btn');
+            if (menu && menu.style.display === "flex" && !menu.contains(event.target) && event.target !== gearBtn) {
+                menu.style.display = "none";
+            }
+        });
+    </script>
+</body>
+</html>
